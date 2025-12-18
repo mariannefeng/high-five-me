@@ -108,10 +108,10 @@ function App() {
     <div ref={containerRef} className="app-container" onClick={handleClick}>
       <div className="header">
         <h1>high five me</h1>
-        <p>
-          {connectedUsers} {connectedUsers === 1 ? "person" : "people"}{" "}
-          attempting to high five
-        </p>
+        {connectedUsers === 1 && <p>hear the sound of one hand</p>}
+        {connectedUsers > 1 && (
+          <p>{connectedUsers} people attempting to high five</p>
+        )}
       </div>
 
       {clicks.map((click) => {
