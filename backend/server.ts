@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config({ quiet: true });
+
 import express from "express";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
@@ -37,6 +40,7 @@ interface HighFiveData {
   x: number;
   y: number;
   timestamp: number;
+  totalMatches: number;
   superMatch?: boolean;
 }
 
@@ -104,6 +108,7 @@ io.on("connection", (socket: Socket) => {
     }
 
     if (matches.length > 0) {
+      // Emit a highFive event for each match, with superMatch determined per match
       matches.forEach(({ click: match, distance: matchDistance }) => {
         const highFiveId = `highfive-${Date.now()}-${Math.random()
           .toString(36)
@@ -114,15 +119,17 @@ io.on("connection", (socket: Socket) => {
           y: click.y,
           timestamp: Date.now(),
           superMatch: matchDistance < SUPER_MATCH_THRESHOLD,
+          totalMatches: matches.length + 1,
         };
         io.emit("highFive", highFiveData);
       });
     }
 
-    // Set timeout to remove click
-    setTimeout(() => {
-      removeClick(clickId);
-    }, CLICK_TIMEOUT);
+    if (process.env.NO_TIMEOUT !== "true") {
+      setTimeout(() => {
+        removeClick(clickId);
+      }, CLICK_TIMEOUT);
+    }
   });
 
   socket.on("disconnect", () => {

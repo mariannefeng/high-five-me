@@ -7,6 +7,22 @@ const superHighFiveSound = "/super-high-five.mp3";
 const CLICK_TIMEOUT = 500;
 const SUPER_MATCH_TIMEOUT = 9000;
 const MATCH_THRESHOLD = 0.02;
+const NO_TIMEOUT = import.meta.env.VITE_NO_TIMEOUT === "true";
+
+function Clap({ superMatch, delay = 0 }) {
+  return superMatch ? (
+    <img
+      src="/super-high-five.png"
+      alt="Super High Five"
+      className="super-clap"
+      style={{ animationDelay: `${delay}s` }}
+    />
+  ) : (
+    <div className="clap" style={{ animationDelay: `${delay}s` }}>
+      👏
+    </div>
+  );
+}
 
 function App() {
   const [clicks, setClicks] = useState([]);
@@ -56,10 +72,12 @@ function App() {
     socket.on("click", (clickData) => {
       setClicks((prev) => [...prev, clickData]);
 
-      // Auto-remove click after timeout
-      setTimeout(() => {
-        setClicks((prev) => prev.filter((c) => c.id !== clickData.id));
-      }, CLICK_TIMEOUT);
+      // Auto-remove click after timeout (unless NO_TIMEOUT is set)
+      if (!NO_TIMEOUT) {
+        setTimeout(() => {
+          setClicks((prev) => prev.filter((c) => c.id !== clickData.id));
+        }, CLICK_TIMEOUT);
+      }
     });
 
     socket.on("highFive", (matchData) => {
@@ -85,13 +103,14 @@ function App() {
       // Add clap emoji
       setHighFives((prev) => [...prev, matchData]);
 
-      // Remove clap emoji after timeout
-      setTimeout(
-        () => {
-          setHighFives((prev) => prev.filter((h) => h.id !== matchData.id));
-        },
-        matchData.superMatch ? SUPER_MATCH_TIMEOUT : CLICK_TIMEOUT
-      );
+      if (!NO_TIMEOUT) {
+        setTimeout(
+          () => {
+            setHighFives((prev) => prev.filter((h) => h.id !== matchData.id));
+          },
+          matchData.superMatch ? SUPER_MATCH_TIMEOUT : CLICK_TIMEOUT
+        );
+      }
     });
 
     socket.on("clickRemoved", (clickId) => {
@@ -183,14 +202,48 @@ function App() {
             top: `${highFive.y * 100}%`,
           }}
         >
-          {highFive.superMatch ? (
-            <img
-              src="/super-high-five.png"
-              alt="Super High Five"
-              className="super-clap"
-            />
-          ) : (
-            <div className="clap">👏</div>
+          {highFive.totalMatches && (
+            <>
+              {highFive.totalMatches === 2 ? (
+                // For 2 matches, render a single clap without transform
+                <div className="total-matches">
+                  <Clap superMatch={highFive.superMatch} />
+                </div>
+              ) : (
+                // For other cases, render claps in a circular pattern
+                Array.from({ length: highFive.totalMatches }).map((_, i) => {
+                  // Offset each match in a circular pattern
+                  // Use (i + 0.5) to center the circle and avoid overlap at 0/2π
+                  const angle =
+                    ((i + 0.5) / highFive.totalMatches) * 2 * Math.PI;
+                  // Calculate radius to prevent overlap: emoji is 4rem (~64px)
+                  // Minimum radius = emojiSize / (2 * sin(π/n)) to ensure no overlap
+                  const emojiSize = 64; // 4rem in pixels
+                  const radius = Math.max(
+                    emojiSize * 0.8,
+                    emojiSize / (2 * Math.sin(Math.PI / highFive.totalMatches))
+                  );
+                  const offsetX = Math.cos(angle) * radius;
+                  const offsetY = Math.sin(angle) * radius;
+
+                  const staggerDelay = i * 0.1; // 0.1s delay between each clap
+                  return (
+                    <div
+                      key={i}
+                      className="total-matches"
+                      style={{
+                        transform: `translate(${offsetX}px, ${offsetY}px)`,
+                      }}
+                    >
+                      <Clap
+                        superMatch={highFive.superMatch}
+                        delay={staggerDelay}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </>
           )}
         </div>
       ))}

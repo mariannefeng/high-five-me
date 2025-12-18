@@ -1,12 +1,13 @@
 # todo:
 
-- what happens if more than 2 people high five
 - deploy (do digital ocean server, ci, containerized, whole shabam)
 - setup posthog
-- add env var for disabling timeouts
+- disable click to select on homepage
 
 # done:
 
+- what happens if more than 2 people high five
+- add env var for disabling timeouts
 - default to dark theme
 - add theme toggler
 - make it so that if you both clap JUST right an image of todo from jjk appears
