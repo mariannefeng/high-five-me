@@ -1,11 +1,14 @@
 # todo:
 
-- deploy (do digital ocean server, ci, containerized, whole shabam)
+- favicon for light mode and dark mode
+- fix the docker image tag and unknown/unknown image
 - setup posthog
-- disable click to select on homepage
+- play a one hand whooshing sound when you miss
 
 # done:
 
+- deploy (do digital ocean server, ci, containerized, whole shabam)
+- disable click to select on homepage
 - what happens if more than 2 people high five
 - add env var for disabling timeouts
 - default to dark theme
