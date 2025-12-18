@@ -1,18 +1,31 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
-import highFiveSound from "./assets/high-five.mp3";
+const highFiveSound = "/high-five.mp3";
+const superHighFiveSound = "/super-high-five.mp3";
 
 const CLICK_TIMEOUT = 500;
+const SUPER_MATCH_TIMEOUT = 9000;
+const MATCH_THRESHOLD = 0.02;
 
 function App() {
   const [clicks, setClicks] = useState([]);
   const [highFives, setHighFives] = useState([]);
   const [userId, setUserId] = useState(null);
   const [connectedUsers, setConnectedUsers] = useState(0);
+  const [theme, setTheme] = useState(() => {
+    // Load theme from localStorage or default to 'light'
+    return localStorage.getItem("theme") || "dark";
+  });
   const socketRef = useRef(null);
   const containerRef = useRef(null);
   const audioRef = useRef(null);
+
+  useEffect(() => {
+    // Apply theme to document root
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     // Initialize audio
@@ -50,17 +63,17 @@ function App() {
     });
 
     socket.on("highFive", (matchData) => {
-      // Play sound
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0; // Reset to start
-        audioRef.current.play().catch((err) => {
-          console.error("Error playing sound:", err);
-        });
-      }
+      const soundFile = matchData.superMatch
+        ? superHighFiveSound
+        : highFiveSound;
+      const audio = new Audio(soundFile);
+      audio.volume = 0.5;
+      audio.play().catch((err) => {
+        console.error("Error playing sound:", err);
+      });
 
       // Remove clicks that are near the high-five position
       setClicks((prev) => {
-        const MATCH_THRESHOLD = 0.02;
         return prev.filter((click) => {
           const dx = click.x - matchData.x;
           const dy = click.y - matchData.y;
@@ -73,9 +86,12 @@ function App() {
       setHighFives((prev) => [...prev, matchData]);
 
       // Remove clap emoji after timeout
-      setTimeout(() => {
-        setHighFives((prev) => prev.filter((h) => h.id !== matchData.id));
-      }, CLICK_TIMEOUT);
+      setTimeout(
+        () => {
+          setHighFives((prev) => prev.filter((h) => h.id !== matchData.id));
+        },
+        matchData.superMatch ? SUPER_MATCH_TIMEOUT : CLICK_TIMEOUT
+      );
     });
 
     socket.on("clickRemoved", (clickId) => {
@@ -89,6 +105,18 @@ function App() {
 
   const handleClick = (e) => {
     if (!socketRef.current || !containerRef.current) return;
+
+    // Check if previous click from this user hasn't expired
+    const now = Date.now();
+    // only allow clicks every 5 seconds
+    const hasRecentClick = clicks.some(
+      (click) =>
+        click.userId === userId && now - click.timestamp < CLICK_TIMEOUT * 10
+    );
+
+    if (hasRecentClick) {
+      return;
+    }
 
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
@@ -104,14 +132,30 @@ function App() {
     socketRef.current.emit("click", clickData);
   };
 
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+  };
+
   return (
     <div ref={containerRef} className="app-container" onClick={handleClick}>
       <div className="header">
-        <h1>high five me</h1>
-        {connectedUsers === 1 && <p>hear the sound of one hand</p>}
-        {connectedUsers > 1 && (
-          <p>{connectedUsers} people attempting to high five</p>
-        )}
+        <div className="header-content">
+          <h1>high five me</h1>
+          {connectedUsers === 1 && <p>hear the sound of one hand </p>}
+          {connectedUsers > 1 && (
+            <p>{connectedUsers} people attempting to high five</p>
+          )}
+        </div>
+        <button
+          className="theme-toggle"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleTheme();
+          }}
+          aria-label="Toggle theme"
+        >
+          {theme === "light" ? "🌙" : "☀️"}
+        </button>
       </div>
 
       {clicks.map((click) => {
@@ -139,7 +183,15 @@ function App() {
             top: `${highFive.y * 100}%`,
           }}
         >
-          <div className="clap">👏</div>
+          {highFive.superMatch ? (
+            <img
+              src="/super-high-five.png"
+              alt="Super High Five"
+              className="super-clap"
+            />
+          ) : (
+            <div className="clap">👏</div>
+          )}
         </div>
       ))}
     </div>

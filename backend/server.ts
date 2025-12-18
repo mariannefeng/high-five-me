@@ -37,11 +37,13 @@ interface HighFiveData {
   x: number;
   y: number;
   timestamp: number;
+  superMatch?: boolean;
 }
 
 const activeClicks = new Map<string, ClickData>();
 const CLICK_TIMEOUT = 500;
-const MATCH_THRESHOLD = 0.02; // 1% of screen size (0.01 = 1%)
+const MATCH_THRESHOLD = 0.02; // 2% of screen size (0.01 = 1%)
+const SUPER_MATCH_THRESHOLD = 0.005;
 
 // Track connected users
 let connectedUsers = 0;
@@ -53,11 +55,12 @@ function getDistance(click1: ClickData, click2: ClickData): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// Helper function to check if two clicks match
-function clicksMatch(click1: ClickData, click2: ClickData): boolean {
-  if (click1.userId === click2.userId) return false; // Don't match own clicks
+// Helper function to calculate the distance difference between two clicks.
+// If the value is negative, the clicks are too far apart.
+function distance(click1: ClickData, click2: ClickData): number {
+  if (click1.userId === click2.userId) return -1;
   const distance = getDistance(click1, click2);
-  return distance <= MATCH_THRESHOLD;
+  return MATCH_THRESHOLD - distance;
 }
 
 // Clean up expired clicks
@@ -92,16 +95,16 @@ io.on("connection", (socket: Socket) => {
     io.emit("click", click);
 
     // Check for matches with existing clicks
-    const matches: ClickData[] = [];
+    const matches: Array<{ click: ClickData; distance: number }> = [];
     for (const [existingId, existingClick] of activeClicks.entries()) {
-      if (clicksMatch(click, existingClick)) {
-        matches.push(existingClick);
+      if (distance(click, existingClick) > 0) {
+        const actualDistance = getDistance(click, existingClick);
+        matches.push({ click: existingClick, distance: actualDistance });
       }
     }
 
-    // If matches found, emit high-five events
     if (matches.length > 0) {
-      matches.forEach((match) => {
+      matches.forEach(({ click: match, distance: matchDistance }) => {
         const highFiveId = `highfive-${Date.now()}-${Math.random()
           .toString(36)
           .substr(2, 9)}`;
@@ -110,6 +113,7 @@ io.on("connection", (socket: Socket) => {
           x: click.x,
           y: click.y,
           timestamp: Date.now(),
+          superMatch: matchDistance < SUPER_MATCH_THRESHOLD,
         };
         io.emit("highFive", highFiveData);
       });

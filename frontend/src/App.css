@@ -1,18 +1,42 @@
+:root {
+  /* Light theme colors */
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --header-bg: rgba(255, 255, 255, 0.9);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] {
+  /* Dark theme colors */
+  --bg-color: #1a1a1a;
+  --text-color: #ffffff;
+  --header-bg: rgba(26, 26, 26, 0.9);
+  --shadow-color: rgba(0, 0, 0, 0.6);
+}
+
 .app-container {
   width: 100vw;
   height: 100vh;
   position: relative;
   cursor: crosshair;
   overflow: hidden;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .header {
   position: absolute;
   top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
+  width: 100%;
   z-index: 10;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.header-content {
   pointer-events: none;
 }
 
@@ -24,12 +48,6 @@
 .header p {
   font-size: 1.2rem;
   margin: 5px 0;
-}
-
-.instruction {
-  font-size: 1rem;
-  opacity: 0.9;
-  margin-top: 10px;
 }
 
 .click-indicator {
@@ -44,18 +62,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(3);
-    opacity: 0;
-  }
+  filter: drop-shadow(2px 2px 4px var(--shadow-color));
 }
 
 .clap-indicator {
@@ -70,5 +77,36 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(2px 2px 4px var(--shadow-color));
+}
+
+.super-clap {
+  width: 4rem;
+  height: 4rem;
+  object-fit: contain;
+  filter: drop-shadow(2px 2px 4px var(--shadow-color));
+}
+
+.theme-toggle {
+  background: transparent;
+  border: none;
+  width: 45px;
+  height: 45px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+.theme-toggle:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
 }
