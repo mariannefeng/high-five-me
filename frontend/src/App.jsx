@@ -3,11 +3,11 @@ import { io } from "socket.io-client";
 import "./App.css";
 const highFiveSound = "/high-five.mp3";
 const superHighFiveSound = "/super-high-five.mp3";
+const wooshSound = "/high-five-miss.mp3";
 
 const CLICK_TIMEOUT = 500;
 const SUPER_MATCH_TIMEOUT = 9000;
 const MATCH_THRESHOLD = 0.02;
-const NO_TIMEOUT = import.meta.env.VITE_NO_TIMEOUT === "true";
 
 function Clap({ superMatch, delay = 0 }) {
   return superMatch ? (
@@ -35,7 +35,11 @@ function App() {
   });
   const socketRef = useRef(null);
   const containerRef = useRef(null);
-  const audioRef = useRef(null);
+  const clicksRef = useRef([]);
+
+  useEffect(() => {
+    clicksRef.current = clicks;
+  }, [clicks]);
 
   useEffect(() => {
     // Apply theme to document root
@@ -44,10 +48,6 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    // Initialize audio
-    audioRef.current = new Audio(highFiveSound);
-    audioRef.current.volume = 0.5;
-
     // Generate unique user ID
     const id = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setUserId(id);
@@ -57,12 +57,12 @@ function App() {
       import.meta.env.VITE_BACKEND_URL || "http://localhost:5000",
       {
         transports: ["websocket"],
-      }
+      },
     );
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("Connected to server");
+      console.log("Connected to serverrrrr");
     });
 
     socket.on("userCount", (count) => {
@@ -71,13 +71,6 @@ function App() {
 
     socket.on("click", (clickData) => {
       setClicks((prev) => [...prev, clickData]);
-
-      // Auto-remove click after timeout (unless NO_TIMEOUT is set)
-      if (!NO_TIMEOUT) {
-        setTimeout(() => {
-          setClicks((prev) => prev.filter((c) => c.id !== clickData.id));
-        }, CLICK_TIMEOUT);
-      }
     });
 
     socket.on("highFive", (matchData) => {
@@ -103,18 +96,32 @@ function App() {
       // Add clap emoji
       setHighFives((prev) => [...prev, matchData]);
 
-      if (!NO_TIMEOUT) {
-        setTimeout(
-          () => {
-            setHighFives((prev) => prev.filter((h) => h.id !== matchData.id));
-          },
-          matchData.superMatch ? SUPER_MATCH_TIMEOUT : CLICK_TIMEOUT
-        );
-      }
+      setTimeout(
+        () => {
+          setHighFives((prev) => prev.filter((h) => h.id !== matchData.id));
+        },
+        matchData.superMatch ? SUPER_MATCH_TIMEOUT : CLICK_TIMEOUT,
+      );
     });
 
     socket.on("clickRemoved", (clickId) => {
+      console.log("clickRemoved", clickId);
+
+      const currentClicks = clicksRef.current;
+      const hadClick = currentClicks.some((c) => c.id === clickId);
+      if (!hadClick) {
+        return;
+      }
+
       setClicks((prev) => prev.filter((c) => c.id !== clickId));
+
+      console.log("playing woosh sound");
+
+      const audio = new Audio(wooshSound);
+      audio.volume = 0.5;
+      audio.play().catch((err) => {
+        console.error("Error playing woosh sound:", err);
+      });
     });
 
     return () => {
@@ -130,7 +137,7 @@ function App() {
     // only allow clicks every 5 seconds
     const hasRecentClick = clicks.some(
       (click) =>
-        click.userId === userId && now - click.timestamp < CLICK_TIMEOUT * 10
+        click.userId === userId && now - click.timestamp < CLICK_TIMEOUT * 10,
     );
 
     if (hasRecentClick) {
@@ -221,7 +228,7 @@ function App() {
                   const emojiSize = 64; // 4rem in pixels
                   const radius = Math.max(
                     emojiSize * 0.8,
-                    emojiSize / (2 * Math.sin(Math.PI / highFive.totalMatches))
+                    emojiSize / (2 * Math.sin(Math.PI / highFive.totalMatches)),
                   );
                   const offsetX = Math.cos(angle) * radius;
                   const offsetY = Math.sin(angle) * radius;
