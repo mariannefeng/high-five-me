@@ -62,7 +62,7 @@ function App() {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("Connected to serverrrrr");
+      console.log("Ready to high five");
     });
 
     socket.on("userCount", (count) => {
@@ -105,8 +105,6 @@ function App() {
     });
 
     socket.on("clickRemoved", (clickId) => {
-      console.log("clickRemoved", clickId);
-
       const currentClicks = clicksRef.current;
       const hadClick = currentClicks.some((c) => c.id === clickId);
       if (!hadClick) {
@@ -114,8 +112,6 @@ function App() {
       }
 
       setClicks((prev) => prev.filter((c) => c.id !== clickId));
-
-      console.log("playing woosh sound");
 
       const audio = new Audio(wooshSound);
       audio.volume = 0.5;
