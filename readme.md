@@ -1,11 +1,12 @@
 # todo:
 
-- favicon for light mode and dark mode
-- fix the docker image tag and unknown/unknown image
 - play a one hand whooshing sound when you miss
+- decrease visible time to make high fiving harder
 
 # done:
 
+- fix the docker image tag and unknown/unknown image
+- favicon for light mode and dark mode
 - setup posthog
 - deploy (do digital ocean server, ci, containerized, whole shabam)
 - disable click to select on homepage
